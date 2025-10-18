@@ -6,18 +6,31 @@ import Toast from 'react-native-toast-message';
 import apiClient from '../axios/axiosInterceptor';
 import { endpoints } from '../axios/endpoint';
 import SendIntentAndroid from 'react-native-send-intent';
-import UPIScanner from './UPIScanner';
+import { useDashboard } from '../context/DashboardContext';
 
 const PAYTM_PACKAGE = 'net.one97.paytm';
 
-const ExpensePayment = ({ type, onBack, onSuccess, isLoanPayment = false }) => {
-  const [categories, setCategories] = useState([]);
+type ExpensePaymentProps = {
+  type: string;
+  onBack: () => void;
+  onSuccess?: () => void;
+  isLoanPayment?: boolean;
+};
+
+const ExpensePayment: React.FC<ExpensePaymentProps> = ({
+  type,
+  onBack,
+  onSuccess,
+  isLoanPayment = false,
+}) => {
+  const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [unFilteredCategories, setUnFilteredCategories] = useState([]);
+  const [unFilteredCategories, setUnFilteredCategories] = useState<any[]>([]);
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showScanner, setShowScanner] = useState(false);
+
+  const { showUPIScanner } = useDashboard();
 
   useEffect(() => {
     fetchCategories();
@@ -27,7 +40,9 @@ const ExpensePayment = ({ type, onBack, onSuccess, isLoanPayment = false }) => {
     try {
       const res = await apiClient.get(endpoints.categoryEndpoint);
       setUnFilteredCategories(res.data.categories);
-      let filtered = res.data.categories.filter(c => c.amount > 0 && c.name.toLowerCase() !== 'loan');
+      const filtered = res.data.categories.filter(
+        (c: any) => c.amount > 0 && c.name.toLowerCase() !== 'loan'
+      );
       setCategories(filtered);
     } catch {
       Toast.show({ type: 'error', text1: 'Failed to load categories' });
@@ -36,8 +51,16 @@ const ExpensePayment = ({ type, onBack, onSuccess, isLoanPayment = false }) => {
     }
   };
 
+  const launchPaytmFallback = async () => {
+    try {
+      await SendIntentAndroid.openApp(PAYTM_PACKAGE, {});
+    } catch {
+      Toast.show({ type: 'error', text1: 'Could not launch Paytm' });
+    }
+  };
+
   const handlePayment = async () => {
-    const selected = categories.find(c => c.name === selectedCategory);
+    const selected = categories.find((c) => c.name === selectedCategory);
     const amountNum = Number(amount);
 
     if (!selectedCategory || isNaN(amountNum) || amountNum <= 0) {
@@ -52,20 +75,20 @@ const ExpensePayment = ({ type, onBack, onSuccess, isLoanPayment = false }) => {
 
     setSubmitting(true);
     try {
-    //   if (isLoanPayment) {
-    //     await apiClient.post(endpoints.payLoanEndpoint, { name: selectedCategory, amount: amountNum });
-    //   } else {
-    //     await apiClient.patch(endpoints.categoryEndpoint, {
-    //       name: selectedCategory,
-    //       amount: amountNum,
-    //       type: selectedCategory.toLowerCase() === 'loan' ? 'add' : 'subtract',
-    //     });
-    //   }
+      if (isLoanPayment) {
+        await apiClient.post(endpoints.payLoanEndpoint, { name: selectedCategory, amount: amountNum });
+      } else {
+        await apiClient.patch(endpoints.categoryEndpoint, {
+          name: selectedCategory,
+          amount: amountNum,
+          type: selectedCategory.toLowerCase() === 'loan' ? 'add' : 'subtract',
+        });
+      }
 
       Toast.show({ type: 'success', text1: 'Payment processed successfully' });
 
       if (type === 'online') {
-        setShowScanner(true); // 👈 open scanner now
+        showUPIScanner(amount, launchPaytmFallback);
         return;
       }
 
@@ -76,26 +99,6 @@ const ExpensePayment = ({ type, onBack, onSuccess, isLoanPayment = false }) => {
       setSubmitting(false);
     }
   };
-
-  const launchPaytmFallback = async () => {
-    try {
-      await SendIntentAndroid.openApp(PAYTM_PACKAGE, {});
-    } catch {
-      Toast.show({ type: 'error', text1: 'Could not launch Paytm' });
-    }
-  };
-
-  if (showScanner) {
-    return (
-      <UPIScanner
-        amount={amount}
-        onFallback={() => {
-          setShowScanner(false);
-          launchPaytmFallback();
-        }}
-      />
-    );
-  }
 
   if (loading) {
     return (
