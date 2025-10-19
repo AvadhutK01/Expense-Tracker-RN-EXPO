@@ -1,11 +1,9 @@
-// axiosInterceptor.ts
+
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { Alert } from 'react-native';
 
-// Create an Axios instance with base URL from .env
-console.log(process.env.EXPO_PUBLIC_API_URL);
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,      // Define API_URL in your .env file
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

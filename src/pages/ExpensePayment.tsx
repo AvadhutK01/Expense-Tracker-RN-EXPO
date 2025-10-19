@@ -88,8 +88,12 @@ const ExpensePayment: React.FC<ExpensePaymentProps> = ({
       Toast.show({ type: 'success', text1: 'Payment processed successfully' });
 
       if (type === 'online') {
-        showUPIScanner(amount, launchPaytmFallback);
-        return;
+        if( process.env.EXPO_IS_UPI_ENABLED === 'true') {
+          showUPIScanner(amount, launchPaytmFallback);
+          return;
+        }else{
+          await launchPaytmFallback();
+        }
       }
 
       if (onSuccess) setTimeout(onSuccess, 1800);
