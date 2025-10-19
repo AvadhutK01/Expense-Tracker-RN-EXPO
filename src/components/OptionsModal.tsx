@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Keyboard,
   KeyboardEvent,
   Animated,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +35,7 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
 
   const { refreshDashboard } = useDashboard();
 
-  const [keyboardHeight, setKeyboardHeight] = useState(new Animated.Value(0));
+  const keyboardHeight = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e: KeyboardEvent) => {
@@ -58,11 +60,6 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
     };
   }, []);
 
-  const handleSuccess = () => {
-    refreshDashboard();
-    onClose();
-  };
-
   useEffect(() => {
     if (!visible) {
       setMode(null);
@@ -71,6 +68,11 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
       setExpandedSection(null);
     }
   }, [visible]);
+
+  const handleSuccess = () => {
+    refreshDashboard();
+    onClose();
+  };
 
   const handleExpand = (label: string) => {
     setExpandedSection(prev => (prev === label ? null : label));
@@ -175,6 +177,7 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
     if (mode === 'init') return 'Initiate Setup';
     return 'Add New Categories';
   };
+
   return (
     <Modal
       isVisible={visible}
@@ -192,22 +195,27 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
       backdropOpacity={0.3}
     >
       <Toast visibilityTime={1500} />
-
-      <Animated.View
-        style={[
-          tw`bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg`,
-          { marginBottom: keyboardHeight },
-        ]}
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-        <View style={tw`flex-row justify-between items-center mb-4`}>
-          <Text style={tw`text-xl font-bold text-gray-900`}>{getTitle()}</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={26} color="gray" />
-          </TouchableOpacity>
-        </View>
+        <Animated.View
+          style={[
+            tw`bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg`,
+            { marginBottom: keyboardHeight },
+          ]}
+        >
+          <View style={tw`flex-row justify-between items-center mb-4`}>
+            <Text style={tw`text-xl font-bold text-gray-900`}>{getTitle()}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={26} color="gray" />
+            </TouchableOpacity>
+          </View>
 
-        {renderContent()}
-      </Animated.View>
+          {renderContent()}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
