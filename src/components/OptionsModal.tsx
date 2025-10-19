@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Keyboard,
+  KeyboardEvent,
+  Animated,
+} from 'react-native';
 import Modal from 'react-native-modal';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'tailwind-react-native-classnames';
@@ -24,6 +32,31 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const { refreshDashboard } = useDashboard();
+
+  const [keyboardHeight, setKeyboardHeight] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e: KeyboardEvent) => {
+      Animated.timing(keyboardHeight, {
+        toValue: e.endCoordinates.height,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(keyboardHeight, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const handleSuccess = () => {
     refreshDashboard();
@@ -81,7 +114,10 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
     }
 
     return (
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <OptionSection
           label="Initiate Setup"
           onSelect={() => setMode('init')}
@@ -139,38 +175,40 @@ const OptionsModal: React.FC<Props> = ({ visible, onClose }) => {
     if (mode === 'init') return 'Initiate Setup';
     return 'Add New Categories';
   };
-
   return (
-    <>
-      <Modal
-        isVisible={visible}
-        onBackdropPress={onClose}
-        onBackButtonPress={onClose}
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        backdropTransitionInTiming={300}
-        backdropTransitionOutTiming={500}
-        animationInTiming={400}
-        animationOutTiming={500}
-        useNativeDriver={true}
-        hideModalContentWhileAnimating={true}
-        style={tw`m-0 justify-end`}
-        backdropOpacity={0.3}
+    <Modal
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropTransitionInTiming={300}
+      backdropTransitionOutTiming={500}
+      animationInTiming={400}
+      animationOutTiming={500}
+      useNativeDriver={true}
+      hideModalContentWhileAnimating={true}
+      style={{ margin: 0, justifyContent: 'flex-end' }}
+      backdropOpacity={0.3}
+    >
+      <Toast visibilityTime={1500} />
+
+      <Animated.View
+        style={[
+          tw`bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg`,
+          { marginBottom: keyboardHeight },
+        ]}
       >
-        <Toast visibilityTime={1500} />
-        <View style={tw`bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg`}>
-          <View style={tw`flex-row justify-between items-center mb-4`}>
-            <Text style={tw`text-xl font-bold text-gray-900`}>
-              {getTitle()}
-            </Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={26} color="gray" />
-            </TouchableOpacity>
-          </View>
-          {renderContent()}
+        <View style={tw`flex-row justify-between items-center mb-4`}>
+          <Text style={tw`text-xl font-bold text-gray-900`}>{getTitle()}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={26} color="gray" />
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </>
+
+        {renderContent()}
+      </Animated.View>
+    </Modal>
   );
 };
 

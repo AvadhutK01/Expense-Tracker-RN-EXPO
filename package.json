@@ -43,7 +43,9 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "listUnknownPackages": false,
-        "exclude": ["react-native-send-intent"]
+        "exclude": [
+          "react-native-send-intent"
+        ]
       },
       "checks": {
         "projectSetup": "ignore",
